@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Settings, Sparkles, Database, FileSpreadsheet } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Settings, Sparkles, Database, FileSpreadsheet, History } from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { Card } from './components/ui/Card';
 import { FileUpload } from './components/FileUpload';
@@ -9,12 +9,15 @@ import { SettingsModal } from './components/SettingsModal';
 import { AnalysisView } from './components/AnalysisView';
 import { AnthropicService } from './services/anthropic';
 import { generateColumnAnalysisPrompt } from './services/prompts/columnAnalysis';
+import { saveToHistory, loadHistory, type HistoryEntry } from './services/historyService';
 import type { ParsedDocument } from './services/documentParser';
 
 function App() {
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('claude-3-5-sonnet-20241022');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const historyRef = useRef<HTMLDivElement>(null);
 
   // Data State
   const [fileName, setFileName] = useState<string>('');
@@ -42,6 +45,34 @@ function App() {
     localStorage.setItem('anthropic_api_key', key);
     localStorage.setItem('anthropic_model', selectedModel);
   };
+
+  const historyEntries = loadHistory();
+
+  const loadFromHistory = (entry: HistoryEntry) => {
+    setFileName(entry.fileName);
+    setHeaders(entry.headers);
+    setRows(entry.rows);
+    setAnalysisResult(entry.analysisResult);
+    setAnalysisError(null);
+    setContextDoc(
+      entry.contextText
+        ? { text: entry.contextText, fileName: entry.contextFileName ?? 'context', fileType: 'Text' }
+        : null
+    );
+    setShowHistory(false);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (showHistory && historyRef.current && !historyRef.current.contains(e.target as Node)) {
+        setShowHistory(false);
+      }
+    };
+    if (showHistory) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showHistory]);
 
   const handleDataLoaded = (data: any[][], headerList: string[], name: string) => {
     setRows(data);
@@ -80,6 +111,14 @@ function App() {
         const jsonString = jsonMatch ? jsonMatch[0] : responseText;
         const result = JSON.parse(jsonString);
         setAnalysisResult(result);
+        saveToHistory({
+          fileName,
+          headers,
+          rows,
+          analysisResult: result,
+          contextText: contextDoc?.text,
+          contextFileName: contextDoc?.fileName,
+        });
       } catch (e) {
         console.error("JSON Parse Error", e);
         setAnalysisError("Failed to parse AI response. The model didn't return valid JSON.");
@@ -107,7 +146,54 @@ function App() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="relative" ref={historyRef}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowHistory(!showHistory)}
+                title="Recent analyses"
+              >
+                <History className="h-4 w-4 mr-2" />
+                History
+                {historyEntries.length > 0 && (
+                  <span className="ml-1.5 rounded-full bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 text-xs">
+                    {historyEntries.length}
+                  </span>
+                )}
+              </Button>
+              {showHistory && (
+                <div className="absolute right-0 mt-2 w-80 rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800 z-50 max-h-[70vh] overflow-y-auto">
+                  <div className="p-2 border-b border-slate-200 dark:border-slate-700">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Recent analyses</p>
+                  </div>
+                  <div className="py-1">
+                    {historyEntries.length === 0 ? (
+                      <p className="px-4 py-6 text-sm text-slate-500 dark:text-slate-400 text-center">
+                        No history yet. Generate a dictionary to see it here.
+                      </p>
+                    ) : (
+                      historyEntries.map((entry) => (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          onClick={() => loadFromHistory(entry)}
+                          className="w-full text-left px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                          data-1p-ignore
+                        >
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                            {entry.fileName}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            {entry.rows.length} rows · {new Date(entry.createdAt).toLocaleDateString()}
+                          </p>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -177,6 +263,8 @@ function App() {
                   setHeaders([]);
                   setRows([]);
                   setAnalysisResult(null);
+                  setContextDoc(null);
+                  setAnalysisError(null);
                 }}>
                   New File
                 </Button>
@@ -193,7 +281,12 @@ function App() {
 
             {/* Content Grid */}
             <div className="grid gap-8">
-              <DataPreview headers={headers} data={rows} fileName={fileName} />
+              <DataPreview
+                headers={headers}
+                data={rows}
+                fileName={fileName}
+                variableDescriptions={analysisResult}
+              />
 
               <div id="analysis-section">
                 <AnalysisView

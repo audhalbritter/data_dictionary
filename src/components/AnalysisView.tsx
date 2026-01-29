@@ -137,68 +137,48 @@ export function AnalysisView({ isLoading, analysisResult, error }: AnalysisViewP
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {analysisResult.map((col, idx) => (
-                    <Card key={idx} className="flex flex-col hover:border-indigo-200 transition-colors dark:hover:border-indigo-800">
-                        <CardHeader className="pb-2">
-                            <div className="flex items-start justify-between">
-                                <CardTitle className="text-lg font-bold text-slate-900 dark:text-slate-100 truncate pr-2" title={col.columnName}>
-                                    {col.columnName}
-                                </CardTitle>
-                                <div className="flex flex-col items-end gap-1">
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
-                                        {col.type}
-                                    </span>
-                                    {col.semanticType && (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
-                                            {col.semanticType}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="flex-1 flex flex-col pt-0">
-                            <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">
-                                {col.description}
-                            </p>
-
-                            <div className="mt-4 space-y-2 text-xs">
-                                {col.variableRangeOrLevels && (
-                                    <div>
-                                        <span className="font-medium text-slate-500 dark:text-slate-400">Range/Levels: </span>
-                                        <span className="text-slate-700 dark:text-slate-300">{col.variableRangeOrLevels}</span>
-                                    </div>
-                                )}
-                                {col.units && (
-                                    <div>
-                                        <span className="font-medium text-slate-500 dark:text-slate-400">Units: </span>
-                                        <span className="text-slate-700 dark:text-slate-300">{col.units}</span>
-                                    </div>
-                                )}
-                                {col.howMeasured && (
-                                    <div>
-                                        <span className="font-medium text-slate-500 dark:text-slate-400">How Measured: </span>
-                                        <span className="text-slate-700 dark:text-slate-300">{col.howMeasured}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {col.exampleValues && col.exampleValues.length > 0 && (
-                                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Examples</span>
-                                    <div className="mt-1 flex flex-wrap gap-1">
-                                        {col.exampleValues.slice(0, 3).map((val, vIdx) => (
-                                            <span key={vIdx} className="inline-block max-w-[120px] truncate text-xs bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 text-slate-600 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400">
-                                                {val?.toString()}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+            <Card className="w-full overflow-hidden">
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-slate-700 uppercase bg-slate-100 dark:bg-slate-800 dark:text-slate-300">
+                                <tr>
+                                    <th className="px-6 py-3 font-semibold whitespace-nowrap">Variable name</th>
+                                    <th className="px-6 py-3 font-semibold">Description</th>
+                                    <th className="px-6 py-3 font-semibold whitespace-nowrap">Variable type</th>
+                                    <th className="px-6 py-3 font-semibold whitespace-nowrap">Variable range or levels</th>
+                                    <th className="px-6 py-3 font-semibold whitespace-nowrap">Units</th>
+                                    <th className="px-6 py-3 font-semibold whitespace-nowrap">How measured</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                                {analysisResult.map((col, idx) => (
+                                    <tr key={idx} className="bg-white hover:bg-slate-50 dark:bg-slate-950 dark:hover:bg-slate-900">
+                                        <td className="px-6 py-3 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                                            {col.columnName}
+                                        </td>
+                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 max-w-md">
+                                            {col.description}
+                                        </td>
+                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                            {col.type}
+                                        </td>
+                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 max-w-[200px]">
+                                            {col.variableRangeOrLevels || '—'}
+                                        </td>
+                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                            {col.units || '—'}
+                                        </td>
+                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                            {col.howMeasured || '—'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }
