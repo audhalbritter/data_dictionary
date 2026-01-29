@@ -11,6 +11,7 @@ import { generateColumnAnalysisPrompt } from './services/prompts/columnAnalysis'
 
 function App() {
   const [apiKey, setApiKey] = useState('');
+  const [model, setModel] = useState('claude-3-5-sonnet-20241022');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Data State
@@ -23,15 +24,20 @@ function App() {
   const [analysisResult, setAnalysisResult] = useState<any[] | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
-  // Load key from storage
+  // Load key and model from storage
   useEffect(() => {
     const storedKey = localStorage.getItem('anthropic_api_key');
     if (storedKey) setApiKey(storedKey);
+
+    const storedModel = localStorage.getItem('anthropic_model');
+    if (storedModel) setModel(storedModel);
   }, []);
 
-  const handleSaveKey = (key: string) => {
+  const handleSaveKey = (key: string, selectedModel: string) => {
     setApiKey(key);
+    setModel(selectedModel);
     localStorage.setItem('anthropic_api_key', key);
+    localStorage.setItem('anthropic_model', selectedModel);
   };
 
   const handleDataLoaded = (data: any[][], headerList: string[], name: string) => {
@@ -57,7 +63,7 @@ function App() {
       const sampleRows = rows.slice(0, 10);
       const { system, user } = generateColumnAnalysisPrompt(fileName, headers, sampleRows);
 
-      const responseText = await client.generateMessage(system, user);
+      const responseText = await client.generateMessage(system, user, model);
 
       // Parse JSON
       try {
@@ -182,6 +188,7 @@ function App() {
         onClose={() => setIsSettingsOpen(false)}
         onSaveKey={handleSaveKey}
         existingKey={apiKey}
+        existingModel={model}
       />
     </div>
   );
