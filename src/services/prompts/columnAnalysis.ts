@@ -1,5 +1,3 @@
-import { formatSummariesForPrompt } from '../summaryStatistics';
-
 export const generateColumnAnalysisPrompt = (
     fileName: string, 
     headers: string[], 

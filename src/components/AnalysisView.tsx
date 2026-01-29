@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardTitle, CardContent } from './ui/Card';
+import { Card, CardContent } from './ui/Card';
 import { Loader2, CheckCircle, AlertCircle, Download } from 'lucide-react';
 import { Button } from './ui/Button';
 import { exportToCSV, exportToXLSX } from '../services/exportService';
