@@ -3,11 +3,13 @@ import { Settings, Sparkles, Database, FileSpreadsheet } from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { Card } from './components/ui/Card';
 import { FileUpload } from './components/FileUpload';
+import { ContextUpload } from './components/ContextUpload';
 import { DataPreview } from './components/DataPreview';
 import { SettingsModal } from './components/SettingsModal';
 import { AnalysisView } from './components/AnalysisView';
 import { AnthropicService } from './services/anthropic';
 import { generateColumnAnalysisPrompt } from './services/prompts/columnAnalysis';
+import type { ParsedDocument } from './services/documentParser';
 
 function App() {
   const [apiKey, setApiKey] = useState('');
@@ -18,6 +20,7 @@ function App() {
   const [fileName, setFileName] = useState<string>('');
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<any[][]>([]);
+  const [contextDoc, setContextDoc] = useState<ParsedDocument | null>(null);
 
   // Analysis State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -61,7 +64,12 @@ function App() {
     try {
       const client = new AnthropicService(apiKey);
       const sampleRows = rows.slice(0, 10);
-      const { system, user } = generateColumnAnalysisPrompt(fileName, headers, sampleRows);
+      const { system, user } = generateColumnAnalysisPrompt(
+        fileName, 
+        headers, 
+        sampleRows, 
+        contextDoc?.text
+      );
 
       const responseText = await client.generateMessage(system, user, model);
 
@@ -127,9 +135,16 @@ function App() {
               </p>
             </div>
 
-            <Card className="p-1 shadow-lg border-indigo-100 dark:border-slate-800">
-              <FileUpload onDataLoaded={handleDataLoaded} />
-            </Card>
+            <div className="space-y-4">
+              <ContextUpload 
+                onContextLoaded={setContextDoc} 
+                existingContext={contextDoc}
+              />
+
+              <Card className="p-1 shadow-lg border-indigo-100 dark:border-slate-800">
+                <FileUpload onDataLoaded={handleDataLoaded} />
+              </Card>
+            </div>
           </div>
         ) : (
           /* Main Workspace */
@@ -143,7 +158,17 @@ function App() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold">{fileName}</h2>
-                  <p className="text-xs text-slate-500">{rows.length} rows loaded</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-slate-500">{rows.length} rows loaded</p>
+                    {contextDoc && (
+                      <>
+                        <span className="text-xs text-slate-400">•</span>
+                        <p className="text-xs text-indigo-600 dark:text-indigo-400">
+                          Context: {contextDoc.fileName}
+                        </p>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 

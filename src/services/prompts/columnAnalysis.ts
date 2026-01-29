@@ -1,5 +1,10 @@
 
-export const generateColumnAnalysisPrompt = (fileName: string, headers: string[], sampleRows: any[][]): { system: string, user: string } => {
+export const generateColumnAnalysisPrompt = (
+    fileName: string, 
+    headers: string[], 
+    sampleRows: any[][], 
+    contextText?: string
+): { system: string, user: string } => {
     const systemPrompt = `You are an expert Data Steward and Data Engineer aimed at creating standardized, machine-readable data dictionaries.
 Your goal is to analyze the provided dataset preview and generate a comprehensive description for each column.
 Output MUST be in strict JSON format as a list of objects, where each object has:
@@ -16,17 +21,27 @@ Important guidelines:
 - For "variableRangeOrLevels": Extract the actual min-max range from sample data for numeric columns, or list the unique categorical values found.
 - For "howMeasured": Use terms like "measured" for sensor/instrument data, "defined" for identifiers or predefined values, "calculated" for derived values, "observed" for observational data.
 - Be specific and accurate based on the sample data provided.
+- If additional context about the study or data collection is provided, use it to inform your descriptions and make them more accurate and domain-specific.
 
 Do not include any conversational text, just the JSON array.`;
 
-    const userMessage = `Here is a preview of the dataset "${fileName}".
-  
-Columns: ${headers.join(', ')}
-
-Sample Data (First ${sampleRows.length} rows):
-${sampleRows.map(row => JSON.stringify(row)).join('\n')}
-
-Please analyze this and provide the column descriptions.`;
+    let userMessage = '';
+    
+    // Add context if provided
+    if (contextText && contextText.trim().length > 0) {
+        userMessage += `=== STUDY CONTEXT ===\n${contextText.trim()}\n\n`;
+    }
+    
+    userMessage += `=== DATASET PREVIEW ===\n`;
+    userMessage += `File: "${fileName}"\n\n`;
+    userMessage += `Columns: ${headers.join(', ')}\n\n`;
+    userMessage += `Sample Data (First ${sampleRows.length} rows):\n`;
+    userMessage += sampleRows.map(row => JSON.stringify(row)).join('\n');
+    userMessage += `\n\nPlease analyze this dataset and provide the column descriptions in JSON format.`;
+    
+    if (contextText && contextText.trim().length > 0) {
+        userMessage += ` Use the study context provided above to inform your descriptions.`;
+    }
 
     return { system: systemPrompt, user: userMessage };
 };
