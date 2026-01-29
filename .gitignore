@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Generated HTML (e.g. from README conversion)
+README.html
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
