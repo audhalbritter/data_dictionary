@@ -1,10 +1,16 @@
 import { Card, CardHeader, CardTitle, CardContent } from './ui/Card';
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import { Button } from './ui/Button';
+import { exportToCSV, exportToXLSX } from '../services/exportService';
+import { useState, useEffect, useRef } from 'react';
 
 interface ColumnDescription {
     columnName: string;
     type: string;
     description: string;
+    variableRangeOrLevels?: string;
+    units?: string;
+    howMeasured?: string;
     semanticType?: string;
     exampleValues?: any[];
 }
@@ -16,6 +22,40 @@ interface AnalysisViewProps {
 }
 
 export function AnalysisView({ isLoading, analysisResult, error }: AnalysisViewProps) {
+    const [showExportMenu, setShowExportMenu] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setShowExportMenu(false);
+            }
+        };
+
+        if (showExportMenu) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+            };
+        }
+    }, [showExportMenu]);
+
+    const handleExport = (format: 'csv' | 'xlsx') => {
+        if (!analysisResult) return;
+
+        const timestamp = new Date().toISOString().split('T')[0];
+        const filename = `data_dictionary_${timestamp}`;
+
+        if (format === 'csv') {
+            exportToCSV(analysisResult, `${filename}.csv`);
+        } else {
+            exportToXLSX(analysisResult, `${filename}.xlsx`);
+        }
+
+        setShowExportMenu(false);
+    };
+
     if (isLoading) {
         return (
             <Card className="w-full mt-6 bg-slate-50 border-dashed dark:bg-slate-900">
@@ -50,56 +90,95 @@ export function AnalysisView({ isLoading, analysisResult, error }: AnalysisViewP
 
     return (
         <div className="w-full mt-8 space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full text-green-600 dark:text-green-400">
-                    <CheckCircle className="h-5 w-5" />
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                    <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full text-green-600 dark:text-green-400">
+                        <CheckCircle className="h-5 w-5" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+                        Analysis Complete
+                    </h2>
                 </div>
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                    Analysis Complete
-                </h2>
-            </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {analysisResult.map((col, idx) => (
-                    <Card key={idx} className="flex flex-col hover:border-indigo-200 transition-colors dark:hover:border-indigo-800">
-                        <CardHeader className="pb-2">
-                            <div className="flex items-start justify-between">
-                                <CardTitle className="text-lg font-bold text-slate-900 dark:text-slate-100 truncate pr-2" title={col.columnName}>
-                                    {col.columnName}
-                                </CardTitle>
-                                <div className="flex flex-col items-end gap-1">
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
-                                        {col.type}
-                                    </span>
-                                    {col.semanticType && (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
-                                            {col.semanticType}
-                                        </span>
-                                    )}
-                                </div>
+                <div className="relative" ref={menuRef}>
+                    <Button
+                        onClick={() => setShowExportMenu(!showExportMenu)}
+                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white border-0"
+                        data-1p-ignore
+                    >
+                        <Download className="mr-2 h-4 w-4" />
+                        Export Dictionary
+                    </Button>
+
+                    {showExportMenu && (
+                        <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-slate-800 ring-1 ring-black ring-opacity-5 z-10">
+                            <div className="py-1" role="menu" data-1p-ignore>
+                                <button
+                                    type="button"
+                                    onClick={() => handleExport('csv')}
+                                    className="block w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                    role="menuitem"
+                                    data-1p-ignore
+                                >
+                                    Export as CSV
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleExport('xlsx')}
+                                    className="block w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                    role="menuitem"
+                                    data-1p-ignore
+                                >
+                                    Export as XLSX
+                                </button>
                             </div>
-                        </CardHeader>
-                        <CardContent className="flex-1 flex flex-col pt-0">
-                            <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 flex-grow">
-                                {col.description}
-                            </p>
-
-                            {col.exampleValues && col.exampleValues.length > 0 && (
-                                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Examples</span>
-                                    <div className="mt-1 flex flex-wrap gap-1">
-                                        {col.exampleValues.slice(0, 3).map((val, vIdx) => (
-                                            <span key={vIdx} className="inline-block max-w-[120px] truncate text-xs bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 text-slate-600 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400">
-                                                {val?.toString()}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                ))}
+                        </div>
+                    )}
+                </div>
             </div>
+
+            <Card className="w-full overflow-hidden">
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-slate-700 uppercase bg-slate-100 dark:bg-slate-800 dark:text-slate-300">
+                                <tr>
+                                    <th className="px-6 py-3 font-semibold whitespace-nowrap">Variable name</th>
+                                    <th className="px-6 py-3 font-semibold">Description</th>
+                                    <th className="px-6 py-3 font-semibold whitespace-nowrap">Variable type</th>
+                                    <th className="px-6 py-3 font-semibold whitespace-nowrap">Variable range or levels</th>
+                                    <th className="px-6 py-3 font-semibold whitespace-nowrap">Units</th>
+                                    <th className="px-6 py-3 font-semibold whitespace-nowrap">How measured</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                                {analysisResult.map((col, idx) => (
+                                    <tr key={idx} className="bg-white hover:bg-slate-50 dark:bg-slate-950 dark:hover:bg-slate-900">
+                                        <td className="px-6 py-3 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                                            {col.columnName}
+                                        </td>
+                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 max-w-md">
+                                            {col.description}
+                                        </td>
+                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                            {col.type}
+                                        </td>
+                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 max-w-[200px]">
+                                            {col.variableRangeOrLevels || '—'}
+                                        </td>
+                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                            {col.units || '—'}
+                                        </td>
+                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                            {col.howMeasured || '—'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }

@@ -1,23 +1,30 @@
-import { useEffect, useState } from 'react';
-import { Settings, Sparkles, Database, FileSpreadsheet } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Settings, Sparkles, Database, FileSpreadsheet, History } from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { Card } from './components/ui/Card';
 import { FileUpload } from './components/FileUpload';
+import { ContextUpload } from './components/ContextUpload';
 import { DataPreview } from './components/DataPreview';
 import { SettingsModal } from './components/SettingsModal';
 import { AnalysisView } from './components/AnalysisView';
 import { AnthropicService } from './services/anthropic';
 import { generateColumnAnalysisPrompt } from './services/prompts/columnAnalysis';
+import { computeColumnSummaries, formatSummariesForPrompt } from './services/summaryStatistics';
+import { saveToHistory, loadHistory, type HistoryEntry } from './services/historyService';
+import type { ParsedDocument } from './services/documentParser';
 
 function App() {
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('claude-3-5-sonnet-20241022');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const historyRef = useRef<HTMLDivElement>(null);
 
   // Data State
   const [fileName, setFileName] = useState<string>('');
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<any[][]>([]);
+  const [contextDoc, setContextDoc] = useState<ParsedDocument | null>(null);
 
   // Analysis State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -40,6 +47,34 @@ function App() {
     localStorage.setItem('anthropic_model', selectedModel);
   };
 
+  const historyEntries = loadHistory();
+
+  const loadFromHistory = (entry: HistoryEntry) => {
+    setFileName(entry.fileName);
+    setHeaders(entry.headers);
+    setRows(entry.rows);
+    setAnalysisResult(entry.analysisResult);
+    setAnalysisError(null);
+    setContextDoc(
+      entry.contextText
+        ? { text: entry.contextText, fileName: entry.contextFileName ?? 'context', fileType: 'Text' }
+        : null
+    );
+    setShowHistory(false);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (showHistory && historyRef.current && !historyRef.current.contains(e.target as Node)) {
+        setShowHistory(false);
+      }
+    };
+    if (showHistory) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showHistory]);
+
   const handleDataLoaded = (data: any[][], headerList: string[], name: string) => {
     setRows(data);
     setHeaders(headerList);
@@ -61,7 +96,15 @@ function App() {
     try {
       const client = new AnthropicService(apiKey);
       const sampleRows = rows.slice(0, 10);
-      const { system, user } = generateColumnAnalysisPrompt(fileName, headers, sampleRows);
+      const summaries = computeColumnSummaries(headers, rows);
+      const summaryStats = formatSummariesForPrompt(summaries);
+      const { system, user } = generateColumnAnalysisPrompt(
+        fileName,
+        headers,
+        sampleRows,
+        contextDoc?.text,
+        summaryStats
+      );
 
       const responseText = await client.generateMessage(system, user, model);
 
@@ -72,6 +115,14 @@ function App() {
         const jsonString = jsonMatch ? jsonMatch[0] : responseText;
         const result = JSON.parse(jsonString);
         setAnalysisResult(result);
+        saveToHistory({
+          fileName,
+          headers,
+          rows,
+          analysisResult: result,
+          contextText: contextDoc?.text,
+          contextFileName: contextDoc?.fileName,
+        });
       } catch (e) {
         console.error("JSON Parse Error", e);
         setAnalysisError("Failed to parse AI response. The model didn't return valid JSON.");
@@ -99,7 +150,54 @@ function App() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="relative" ref={historyRef}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowHistory(!showHistory)}
+                title="Recent analyses"
+              >
+                <History className="h-4 w-4 mr-2" />
+                History
+                {historyEntries.length > 0 && (
+                  <span className="ml-1.5 rounded-full bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 text-xs">
+                    {historyEntries.length}
+                  </span>
+                )}
+              </Button>
+              {showHistory && (
+                <div className="absolute right-0 mt-2 w-80 rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800 z-50 max-h-[70vh] overflow-y-auto">
+                  <div className="p-2 border-b border-slate-200 dark:border-slate-700">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Recent analyses</p>
+                  </div>
+                  <div className="py-1">
+                    {historyEntries.length === 0 ? (
+                      <p className="px-4 py-6 text-sm text-slate-500 dark:text-slate-400 text-center">
+                        No history yet. Generate a dictionary to see it here.
+                      </p>
+                    ) : (
+                      historyEntries.map((entry) => (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          onClick={() => loadFromHistory(entry)}
+                          className="w-full text-left px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                          data-1p-ignore
+                        >
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                            {entry.fileName}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            {entry.rows.length} rows · {new Date(entry.createdAt).toLocaleDateString()}
+                          </p>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -117,7 +215,7 @@ function App() {
 
         {/* Hero / Upload Section */}
         {!headers.length ? (
-          <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="text-center space-y-4">
               <h2 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
                 Turn data into <span className="text-indigo-600 dark:text-indigo-400">clarity</span>
@@ -127,9 +225,16 @@ function App() {
               </p>
             </div>
 
-            <Card className="p-1 shadow-lg border-indigo-100 dark:border-slate-800">
-              <FileUpload onDataLoaded={handleDataLoaded} />
-            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ContextUpload 
+                onContextLoaded={setContextDoc} 
+                existingContext={contextDoc}
+              />
+
+              <Card className="p-1 shadow-lg border-indigo-100 dark:border-slate-800">
+                <FileUpload onDataLoaded={handleDataLoaded} />
+              </Card>
+            </div>
           </div>
         ) : (
           /* Main Workspace */
@@ -143,7 +248,17 @@ function App() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold">{fileName}</h2>
-                  <p className="text-xs text-slate-500">{rows.length} rows loaded</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-slate-500">{rows.length} rows loaded</p>
+                    {contextDoc && (
+                      <>
+                        <span className="text-xs text-slate-400">•</span>
+                        <p className="text-xs text-indigo-600 dark:text-indigo-400">
+                          Context: {contextDoc.fileName}
+                        </p>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -152,6 +267,8 @@ function App() {
                   setHeaders([]);
                   setRows([]);
                   setAnalysisResult(null);
+                  setContextDoc(null);
+                  setAnalysisError(null);
                 }}>
                   New File
                 </Button>
@@ -168,7 +285,12 @@ function App() {
 
             {/* Content Grid */}
             <div className="grid gap-8">
-              <DataPreview headers={headers} data={rows} fileName={fileName} />
+              <DataPreview
+                headers={headers}
+                data={rows}
+                fileName={fileName}
+                variableDescriptions={analysisResult}
+              />
 
               <div id="analysis-section">
                 <AnalysisView
