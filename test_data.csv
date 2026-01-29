@@ -1,0 +1,6 @@
+id,name,age,email,signup_date,active
+1,John Doe,28,john@example.com,2023-01-15,true
+2,Jane Smith,34,jane.smith@test.co,2023-02-20,true
+3,Bob Johnson,45,bob.j@provider.net,2023-03-10,false
+4,Alice Williams,23,alice.w@domain.org,2023-04-05,true
+5,Charlie Brown,31,charlie@peanuts.com,2023-05-12,false
