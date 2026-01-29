@@ -118,6 +118,16 @@ npm run lint
 
 ---
 
+## More documentation
+
+Detailed docs are in the **`docs/`** folder:
+
+- **[docs/README_EXPORT.md](docs/README_EXPORT.md)** – Export format and usage (CSV, XLSX)
+- **[docs/CONTEXT_FEATURE.md](docs/CONTEXT_FEATURE.md)** – Context upload (text, Word, PDF) and examples
+- **[docs/CHANGES_SUMMARY.md](docs/CHANGES_SUMMARY.md)** – Development summary of features and file changes
+
+---
+
 ## License
 
 See [LICENSE](LICENSE) in this repository.
