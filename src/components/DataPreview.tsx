@@ -66,7 +66,7 @@ function VariableTooltip({ variable, onClose }: { variable: VariableDescription;
                         <span className="text-slate-700 dark:text-slate-300">{variable.howMeasured}</span>
                     </div>
                 )}
-                {variable.exampleValues && variable.exampleValues.length > 0 && (
+                {Array.isArray(variable.exampleValues) && variable.exampleValues.length > 0 && (
                     <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
                         <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Examples</span>
                         <div className="mt-1 flex flex-wrap gap-1">

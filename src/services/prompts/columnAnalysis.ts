@@ -1,7 +1,7 @@
 export const generateColumnAnalysisPrompt = (
-    fileName: string, 
-    headers: string[], 
-    sampleRows: any[][], 
+    fileName: string,
+    headers: string[],
+    sampleRows: any[][],
     contextText?: string,
     summaryStats?: string
 ): { system: string, user: string } => {
@@ -28,26 +28,33 @@ Important guidelines:
 Do not include any conversational text, just the JSON array.`;
 
     let userMessage = '';
-    
+
     // Add context if provided
     if (contextText && contextText.trim().length > 0) {
         userMessage += `=== STUDY CONTEXT ===\n${contextText.trim()}\n\n`;
     }
-    
+
     userMessage += `=== SUMMARY STATISTICS (full dataset, NAs omitted for min/max) ===\n`;
     userMessage += summaryStats ?? '(none)\n';
     userMessage += `\n`;
-    
+
     userMessage += `=== SAMPLE DATA (first ${sampleRows.length} rows only) ===\n`;
     userMessage += `File: "${fileName}"\n\n`;
     userMessage += `Columns: ${headers.join(', ')}\n\n`;
     userMessage += `Sample rows:\n`;
     userMessage += sampleRows.map(row => JSON.stringify(row)).join('\n');
     userMessage += `\n\nPlease analyze this dataset using both the summary statistics and sample data. Provide the column descriptions in JSON format.`;
-    
+
     if (contextText && contextText.trim().length > 0) {
         userMessage += ` Use the study context provided above to inform your descriptions.`;
     }
 
     return { system: systemPrompt, user: userMessage };
+};
+
+export const generateRepairPrompt = (missingColumns: string[]): string => {
+    return `The previous analysis was incomplete. The following columns are missing from the output: ${missingColumns.join(', ')}.
+
+Please provide the JSON objects for ONLY these missing columns. Do not repeat the columns you already analyzed.
+Ensure the format is the same JSON array of objects as requested before.`;
 };

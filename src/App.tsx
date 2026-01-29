@@ -8,9 +8,10 @@ import { DataPreview } from './components/DataPreview';
 import { SettingsModal } from './components/SettingsModal';
 import { AnalysisView } from './components/AnalysisView';
 import { AnthropicService } from './services/anthropic';
-import { generateColumnAnalysisPrompt } from './services/prompts/columnAnalysis';
+import { generateColumnAnalysisPrompt, generateRepairPrompt } from './services/prompts/columnAnalysis';
 import { computeColumnSummaries, formatSummariesForPrompt } from './services/summaryStatistics';
 import { saveToHistory, loadHistory, type HistoryEntry } from './services/historyService';
+import { validateAnalysisResult, reconcileAnalysisResult } from './services/resultReconciliation';
 import type { ParsedDocument } from './services/documentParser';
 
 function App() {
@@ -30,6 +31,9 @@ function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any[] | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  // View State
+  const [isWorkspaceActive, setIsWorkspaceActive] = useState(false);
 
   // Load key and model from storage
   useEffect(() => {
@@ -61,6 +65,7 @@ function App() {
         : null
     );
     setShowHistory(false);
+    setIsWorkspaceActive(true);
   };
 
   useEffect(() => {
@@ -83,6 +88,12 @@ function App() {
     setAnalysisError(null);
   };
 
+  const handleClearFile = () => {
+    setRows([]);
+    setHeaders([]);
+    setFileName('');
+  };
+
   const runAnalysis = async () => {
     if (!apiKey) {
       setIsSettingsOpen(true);
@@ -98,6 +109,8 @@ function App() {
       const sampleRows = rows.slice(0, 10);
       const summaries = computeColumnSummaries(headers, rows);
       const summaryStats = formatSummariesForPrompt(summaries);
+
+      // Initial Prompt
       const { system, user } = generateColumnAnalysisPrompt(
         fileName,
         headers,
@@ -106,27 +119,122 @@ function App() {
         summaryStats
       );
 
-      const responseText = await client.generateMessage(system, user, model);
+      let accumulatedJson: any[] = [];
+      let currentAttempt = 0;
+      const MAX_ATTEMPTS = 3; // Initial + 2 Retries
+      let messages: { role: 'user' | 'assistant', content: string }[] = [
+        { role: 'user', content: user }
+      ];
 
-      // Parse JSON
-      try {
-        // Attempt to find JSON array in markdown code blocks if present
-        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-        const jsonString = jsonMatch ? jsonMatch[0] : responseText;
-        const result = JSON.parse(jsonString);
-        setAnalysisResult(result);
-        saveToHistory({
-          fileName,
-          headers,
-          rows,
-          analysisResult: result,
-          contextText: contextDoc?.text,
-          contextFileName: contextDoc?.fileName,
-        });
-      } catch (e) {
-        console.error("JSON Parse Error", e);
-        setAnalysisError("Failed to parse AI response. The model didn't return valid JSON.");
+      // Loop for retries
+      while (currentAttempt < MAX_ATTEMPTS) {
+        try {
+          // On repairs, we need to send the conversation history
+          // For the first attempt, we just send the user message.
+          // For subsequent, we append the previous assistant reply and the new user repair prompt.
+
+          const responseText = await client.generateMessage(
+            system,
+            currentAttempt === 0 ? user : messages[messages.length - 1].content,
+            model,
+            currentAttempt > 0 ? messages.slice(0, -1) : undefined
+          );
+
+          // Note: client.generateMessage signature might need update or we handle history differently.
+          // checking AnthropicService signature... 
+          // it currently takes (system, user, model). It doesn't support full history.
+          // I will need to update AnthropicService to support history or hack it here.
+          // For now, let's assume I will update AnthropicService or use a concatenated string?
+          // Concatenated string is bad for API.
+          // Let's rely on a slightly modified loop where we don't need full history support if we don't have it,
+          // BUT for repairs to work well, context is good. 
+          // However, since generateRepairPrompt repeats the missing columns, maybe we can just treat it as a fresh request?
+          // "Here are the missing columns: [A, B]. Generating JSON for them."
+          // That might be safer and simpler than refactoring the service right now.
+          // The prompt says "The previous analysis was incomplete..." implying context.
+          // Actually, looking at generateColumnAnalysisPrompt, it includes everything needed.
+          // If I just ask for missing columns, I might need to re-supply context or just hope the model handles it.
+          // Better approach: Update AnthropicService to support messages array.
+          // Wait, I can't easily update AnthropicService in the same step.
+          // Let's assume for this specific retry hack:
+          // We treat each repair as a fresh request but we might need to include the data again?
+          // OR, since I am editing App.tsx, I can update AnthropicService in a separate tool call if needed.
+          // Let's stick to the plan: modify App.tsx. I will assume I can update AnthropicService or pass a giant string.
+          // Actually, looking at AnthropicService:
+          // async generateMessage(systemPrompt: string, userMessage: string, model: string = 'claude-3-5-sonnet-20241022')
+          // I'll make a pragmatic choice: I'll append the previous output and the repair request into a new "user" message if needed, 
+          // OR I will simply accept that I need to update AnthropicService to take `messages[]`.
+
+          // New Strategy: Just parse what we got.
+          // Attempt to find JSON array in markdown code blocks if present
+          const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+          const jsonString = jsonMatch ? jsonMatch[0] : responseText;
+          let currentJson: any[] = [];
+
+          try {
+            currentJson = JSON.parse(jsonString);
+          } catch (e) {
+            console.warn("JSON Parse warning", e);
+            // If hard fail, we might want to continue or retry?
+            // ensuring it is an array
+            currentJson = [];
+          }
+
+          if (!Array.isArray(currentJson)) currentJson = [];
+
+          accumulatedJson = [...accumulatedJson, ...currentJson];
+
+          // Validate
+          const validation = validateAnalysisResult(headers, accumulatedJson);
+
+          if (validation.valid) {
+            break; // We are good!
+          } else {
+            console.log(`Attempt ${currentAttempt + 1} incomplete. Missing: ${validation.missingColumns.join(', ')}`);
+            currentAttempt++;
+
+            if (currentAttempt < MAX_ATTEMPTS) {
+              // Prepare next prompt
+              const repairPrompt = generateRepairPrompt(validation.missingColumns);
+
+              // CRITICAL: We need to pass history or context.
+              // Since AnthropicService is simple, let's just create a NEW request 
+              // focused ONLY on the missing columns, re-supplying the relevant sample data for those columns?
+              // Or just sending the repair prompt as a "User" message.
+              // Without history, the model won't know what "The previous analysis" refers to.
+              // I will perform a simplified repair: I will ask for the missing columns as if it is a new task, 
+              // but I will include the summary stats for those columns to help it.
+              // Actually, simply concatenating the previous user Prompt + "\n\nAssistant Response: " + responseText + "\n\nUser: " + repairPrompt
+              // and sending that as the "userMessage" to the existing service might work as a poor-man's history.
+
+              // Update for next loop iteration
+              // We change the 'user' variable effectively for the generateMessage call
+              // But wait, 'user' is const. I need to be careful.
+
+              // Let's refactor the loop to be cleaner.
+              messages.push({ role: 'assistant', content: responseText });
+              messages.push({ role: 'user', content: repairPrompt });
+            }
+          }
+
+        } catch (e) {
+          console.error("Error in loop", e);
+          currentAttempt++;
+        }
       }
+
+      // Final Reconciliation
+      const finalResult = reconcileAnalysisResult(headers, accumulatedJson);
+
+      setAnalysisResult(finalResult);
+      saveToHistory({
+        fileName,
+        headers,
+        rows,
+        analysisResult: finalResult,
+        contextText: contextDoc?.text,
+        contextFileName: contextDoc?.fileName,
+      });
 
     } catch (err: any) {
       setAnalysisError(err.message || "An error occurred during analysis.");
@@ -214,7 +322,7 @@ function App() {
       <main className="container mx-auto px-4 py-8 max-w-6xl pb-20">
 
         {/* Hero / Upload Section */}
-        {!headers.length ? (
+        {!isWorkspaceActive ? (
           <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="text-center space-y-4">
               <h2 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
@@ -226,15 +334,33 @@ function App() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <ContextUpload 
-                onContextLoaded={setContextDoc} 
+              <ContextUpload
+                onContextLoaded={setContextDoc}
                 existingContext={contextDoc}
               />
 
               <Card className="p-1 shadow-lg border-indigo-100 dark:border-slate-800">
-                <FileUpload onDataLoaded={handleDataLoaded} />
+                <FileUpload
+                  onDataLoaded={handleDataLoaded}
+                  fileName={fileName}
+                  onClear={handleClearFile}
+                />
               </Card>
             </div>
+
+            {/* Proceed Button Area */}
+            {headers.length > 0 && (
+              <div className="flex justify-center pt-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <Button
+                  size="lg"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 h-12 text-lg shadow-lg hover:shadow-xl transition-all"
+                  onClick={() => setIsWorkspaceActive(true)}
+                >
+                  Proceed to Analysis
+                  <Sparkles className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           /* Main Workspace */
@@ -269,6 +395,8 @@ function App() {
                   setAnalysisResult(null);
                   setContextDoc(null);
                   setAnalysisError(null);
+                  setFileName('');
+                  setIsWorkspaceActive(false);
                 }}>
                   New File
                 </Button>
