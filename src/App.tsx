@@ -9,6 +9,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { AnalysisView } from './components/AnalysisView';
 import { AnthropicService } from './services/anthropic';
 import { generateColumnAnalysisPrompt } from './services/prompts/columnAnalysis';
+import { computeColumnSummaries, formatSummariesForPrompt } from './services/summaryStatistics';
 import { saveToHistory, loadHistory, type HistoryEntry } from './services/historyService';
 import type { ParsedDocument } from './services/documentParser';
 
@@ -95,11 +96,14 @@ function App() {
     try {
       const client = new AnthropicService(apiKey);
       const sampleRows = rows.slice(0, 10);
+      const summaries = computeColumnSummaries(headers, rows);
+      const summaryStats = formatSummariesForPrompt(summaries);
       const { system, user } = generateColumnAnalysisPrompt(
-        fileName, 
-        headers, 
-        sampleRows, 
-        contextDoc?.text
+        fileName,
+        headers,
+        sampleRows,
+        contextDoc?.text,
+        summaryStats
       );
 
       const responseText = await client.generateMessage(system, user, model);
