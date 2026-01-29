@@ -1,10 +1,16 @@
 import { Card, CardHeader, CardTitle, CardContent } from './ui/Card';
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import { Button } from './ui/Button';
+import { exportToCSV, exportToXLSX } from '../services/exportService';
+import { useState, useEffect, useRef } from 'react';
 
 interface ColumnDescription {
     columnName: string;
     type: string;
     description: string;
+    variableRangeOrLevels?: string;
+    units?: string;
+    howMeasured?: string;
     semanticType?: string;
     exampleValues?: any[];
 }
@@ -16,6 +22,40 @@ interface AnalysisViewProps {
 }
 
 export function AnalysisView({ isLoading, analysisResult, error }: AnalysisViewProps) {
+    const [showExportMenu, setShowExportMenu] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setShowExportMenu(false);
+            }
+        };
+
+        if (showExportMenu) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+            };
+        }
+    }, [showExportMenu]);
+
+    const handleExport = (format: 'csv' | 'xlsx') => {
+        if (!analysisResult) return;
+
+        const timestamp = new Date().toISOString().split('T')[0];
+        const filename = `data_dictionary_${timestamp}`;
+
+        if (format === 'csv') {
+            exportToCSV(analysisResult, `${filename}.csv`);
+        } else {
+            exportToXLSX(analysisResult, `${filename}.xlsx`);
+        }
+
+        setShowExportMenu(false);
+    };
+
     if (isLoading) {
         return (
             <Card className="w-full mt-6 bg-slate-50 border-dashed dark:bg-slate-900">
@@ -50,13 +90,51 @@ export function AnalysisView({ isLoading, analysisResult, error }: AnalysisViewP
 
     return (
         <div className="w-full mt-8 space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full text-green-600 dark:text-green-400">
-                    <CheckCircle className="h-5 w-5" />
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                    <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full text-green-600 dark:text-green-400">
+                        <CheckCircle className="h-5 w-5" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+                        Analysis Complete
+                    </h2>
                 </div>
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                    Analysis Complete
-                </h2>
+
+                <div className="relative" ref={menuRef}>
+                    <Button
+                        onClick={() => setShowExportMenu(!showExportMenu)}
+                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white border-0"
+                        data-1p-ignore
+                    >
+                        <Download className="mr-2 h-4 w-4" />
+                        Export Dictionary
+                    </Button>
+
+                    {showExportMenu && (
+                        <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-slate-800 ring-1 ring-black ring-opacity-5 z-10">
+                            <div className="py-1" role="menu" data-1p-ignore>
+                                <button
+                                    type="button"
+                                    onClick={() => handleExport('csv')}
+                                    className="block w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                    role="menuitem"
+                                    data-1p-ignore
+                                >
+                                    Export as CSV
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleExport('xlsx')}
+                                    className="block w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                    role="menuitem"
+                                    data-1p-ignore
+                                >
+                                    Export as XLSX
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -80,9 +158,30 @@ export function AnalysisView({ isLoading, analysisResult, error }: AnalysisViewP
                             </div>
                         </CardHeader>
                         <CardContent className="flex-1 flex flex-col pt-0">
-                            <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 flex-grow">
+                            <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">
                                 {col.description}
                             </p>
+
+                            <div className="mt-4 space-y-2 text-xs">
+                                {col.variableRangeOrLevels && (
+                                    <div>
+                                        <span className="font-medium text-slate-500 dark:text-slate-400">Range/Levels: </span>
+                                        <span className="text-slate-700 dark:text-slate-300">{col.variableRangeOrLevels}</span>
+                                    </div>
+                                )}
+                                {col.units && (
+                                    <div>
+                                        <span className="font-medium text-slate-500 dark:text-slate-400">Units: </span>
+                                        <span className="text-slate-700 dark:text-slate-300">{col.units}</span>
+                                    </div>
+                                )}
+                                {col.howMeasured && (
+                                    <div>
+                                        <span className="font-medium text-slate-500 dark:text-slate-400">How Measured: </span>
+                                        <span className="text-slate-700 dark:text-slate-300">{col.howMeasured}</span>
+                                    </div>
+                                )}
+                            </div>
 
                             {col.exampleValues && col.exampleValues.length > 0 && (
                                 <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
