@@ -2,7 +2,11 @@ import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Set up PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Import worker as a URL to be handled by Vite
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+// Set up PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 export interface ParsedDocument {
     text: string;
@@ -37,9 +41,9 @@ async function parseWordDocument(file: File): Promise<string> {
 async function parsePdfDocument(file: File): Promise<string> {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    
+
     let fullText = '';
-    
+
     // Extract text from all pages
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
@@ -49,7 +53,7 @@ async function parsePdfDocument(file: File): Promise<string> {
             .join(' ');
         fullText += pageText + '\n';
     }
-    
+
     return fullText.trim();
 }
 
@@ -59,10 +63,10 @@ async function parsePdfDocument(file: File): Promise<string> {
 export async function parseDocument(file: File): Promise<ParsedDocument> {
     const fileName = file.name;
     const extension = fileName.toLowerCase().split('.').pop();
-    
+
     let text = '';
     let fileType = '';
-    
+
     try {
         switch (extension) {
             case 'txt':
@@ -70,31 +74,31 @@ export async function parseDocument(file: File): Promise<ParsedDocument> {
                 text = await parseTextFile(file);
                 fileType = 'Text';
                 break;
-                
+
             case 'docx':
                 text = await parseWordDocument(file);
                 fileType = 'Word Document';
                 break;
-                
+
             case 'pdf':
                 text = await parsePdfDocument(file);
                 fileType = 'PDF';
                 break;
-                
+
             default:
                 throw new Error(`Unsupported file type: .${extension}`);
         }
-        
+
         if (!text || text.trim().length === 0) {
             throw new Error('No text content found in the document');
         }
-        
+
         return {
             text: text.trim(),
             fileName,
             fileType
         };
-        
+
     } catch (error: any) {
         throw new Error(`Failed to parse ${fileName}: ${error.message}`);
     }

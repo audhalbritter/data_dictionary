@@ -1,13 +1,16 @@
 import React, { useCallback, useState } from 'react';
-import { Upload, FileType } from 'lucide-react';
+import { Upload, FileType, CheckCircle2, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import * as XLSX from 'xlsx';
+import { Button } from './ui/Button';
 
 interface FileUploadProps {
     onDataLoaded: (data: any[][], headers: string[], fileName: string) => void;
+    fileName?: string;
+    onClear?: () => void;
 }
 
-export function FileUpload({ onDataLoaded }: FileUploadProps) {
+export function FileUpload({ onDataLoaded, fileName, onClear }: FileUploadProps) {
     const [isDragOver, setIsDragOver] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -58,6 +61,34 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
             processFile(e.target.files[0]);
         }
     }, [processFile]);
+
+    if (fileName) {
+        return (
+            <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900 h-[300px] flex-col justify-center gap-4">
+                <div className="bg-green-100 dark:bg-green-900/50 p-4 rounded-full">
+                    <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="text-center">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        File Uploaded successfully
+                    </h3>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
+                        {fileName}
+                    </p>
+                </div>
+                {onClear && (
+                    <Button
+                        variant="outline"
+                        onClick={onClear}
+                        className="mt-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 border-red-200 dark:border-red-900"
+                    >
+                        <X className="w-4 h-4 mr-2" />
+                        Remove File
+                    </Button>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div

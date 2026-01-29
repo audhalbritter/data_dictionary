@@ -10,11 +10,21 @@ export class AnthropicService {
         });
     }
 
-    async generateMessage(systemPrompt: string, userMessage: string, model: string = 'claude-3-5-sonnet-20241022') {
+    async generateMessage(
+        systemPrompt: string,
+        userMessage: string,
+        model: string = 'claude-3-5-sonnet-20241022',
+        history: { role: 'user' | 'assistant', content: string }[] = []
+    ) {
         try {
+            const messages: any[] = [
+                ...history,
+                { role: 'user', content: userMessage }
+            ];
+
             const message = await this.client.messages.create({
                 max_tokens: 4096,
-                messages: [{ role: 'user', content: userMessage }],
+                messages: messages,
                 model: model,
                 system: systemPrompt,
             });
