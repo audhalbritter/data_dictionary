@@ -125,7 +125,7 @@ function App() {
 
         {/* Hero / Upload Section */}
         {!headers.length ? (
-          <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="text-center space-y-4">
               <h2 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
                 Turn data into <span className="text-indigo-600 dark:text-indigo-400">clarity</span>
@@ -135,7 +135,7 @@ function App() {
               </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <ContextUpload 
                 onContextLoaded={setContextDoc} 
                 existingContext={contextDoc}
