@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal } from './ui/Modal';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
-import { Lock, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { Lock, Check, AlertCircle } from 'lucide-react';
 import { AnthropicService } from '../services/anthropic';
 
 interface SettingsModalProps {
