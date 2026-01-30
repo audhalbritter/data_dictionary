@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Settings, Sparkles, Database, FileSpreadsheet, History } from 'lucide-react';
 import { Button } from './components/ui/Button';
-import { Card } from './components/ui/Card';
 import { FileUpload } from './components/FileUpload';
 import { ContextUpload } from './components/ContextUpload';
 import { DataPreview } from './components/DataPreview';
@@ -245,7 +244,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 transition-colors">
 
       {/* Header */}
       <header className="sticky top-0 z-30 w-full border-b border-white/10 bg-white/80 backdrop-blur-md dark:bg-slate-950/80 dark:border-slate-800">
@@ -329,9 +328,22 @@ function App() {
               <h2 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
                 Turn data into <span className="text-indigo-600 dark:text-indigo-400">clarity</span>
               </h2>
-              <p className="text-lg text-slate-600 dark:text-slate-400">
-                Upload your dataset and let Claude AI automatically generate standardized descriptions and semantic types for your data dictionary.
-              </p>
+              <ol className="text-sm text-slate-600 dark:text-slate-400 list-decimal list-inside space-y-1 max-w-md mx-auto text-left">
+                <li>
+                  Set API key in Settings.{' '}
+                  <a
+                    href="https://github.com/audhalbritter/data_dictionary#how-to-get-a-claude-api-key"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                  >
+                    How to get an API key
+                  </a>
+                </li>
+                <li>Upload data and context (optional)</li>
+                <li>AI generates data dictionary</li>
+                <li>View, edit, and export</li>
+              </ol>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -340,13 +352,11 @@ function App() {
                 existingContext={contextDoc}
               />
 
-              <Card className="p-1 shadow-lg border-indigo-100 dark:border-slate-800">
-                <FileUpload
-                  onDataLoaded={handleDataLoaded}
-                  fileName={fileName}
-                  onClear={handleClearFile}
-                />
-              </Card>
+              <FileUpload
+                onDataLoaded={handleDataLoaded}
+                fileName={fileName}
+                onClear={handleClearFile}
+              />
             </div>
 
             {/* Proceed Button Area */}
@@ -440,6 +450,27 @@ function App() {
         )}
 
       </main>
+
+      <footer className="border-t border-slate-200 dark:border-slate-800 py-4 mt-auto">
+        <div className="container mx-auto px-4 max-w-6xl text-center flex items-center justify-center gap-4">
+          <a
+            href="https://github.com/audhalbritter/data_dictionary#readme"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+          >
+            Documentation
+          </a>
+          <a
+            href="https://github.com/audhalbritter/data_dictionary/issues/new"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+          >
+            Give feedback
+          </a>
+        </div>
+      </footer>
 
       <SettingsModal
         isOpen={isSettingsOpen}
