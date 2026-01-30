@@ -23,7 +23,7 @@ Before or after uploading your dataset, you can upload a context document that d
 
 ### 2. Context Integration
 When you click "Generate Dictionary", the AI receives:
-- Your dataset preview (first 10 rows)
+- Your dataset preview and summary statistics
 - The full text content from your context document (if provided)
 
 ### 3. Enhanced Analysis
@@ -60,7 +60,7 @@ Upload field notes or SOPs describing:
 ## User Interface
 
 ### Upload Section (Pre-Analysis)
-- **Context Upload Box** appears above the dataset upload
+- **Context Upload Box** appears next to the dataset upload (side by side on larger screens)
 - Drag-and-drop or click to browse
 - Shows file name, type, and character count when loaded
 - Can be removed and replaced at any time
@@ -121,19 +121,14 @@ High alpine meadow in the Swiss Alps, elevation 2,400-2,800m
 - elevation: Plot elevation (m a.s.l.)
 ```
 
-## Files Changed
+## Files
 
-- **`src/services/documentParser.ts`** (NEW) - Document parsing service
-- **`src/components/ContextUpload.tsx`** (NEW) - Context upload component
-- **`src/App.tsx`** - Added context state and UI integration
-- **`src/services/prompts/columnAnalysis.ts`** - Updated to include context in prompt
-- **`package.json`** - Added `mammoth` and `pdfjs-dist` dependencies
+- **Document Parser**: `src/services/documentParser.ts`
+- **Context Upload Component**: `src/components/ContextUpload.tsx`
+- **AI Prompt**: `src/services/prompts/columnAnalysis.ts` (accepts optional context text)
+- **App**: `src/App.tsx` (context state and UI integration)
 
-## Dependencies Added
+## Dependencies
 
-```json
-{
-  "mammoth": "^1.x.x",
-  "pdfjs-dist": "^4.x.x"
-}
-```
+- `mammoth` - Word document (.docx) parsing
+- `pdfjs-dist` - PDF document parsing

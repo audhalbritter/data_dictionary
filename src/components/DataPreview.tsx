@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
-import { Info } from 'lucide-react';
+import { Info, Pencil } from 'lucide-react';
+
+const TOOLTIP_LEAVE_DELAY_MS = 200;
 
 export interface VariableDescription {
     columnName: string;
@@ -18,12 +20,24 @@ interface DataPreviewProps {
     data: any[][];
     fileName?: string;
     variableDescriptions?: VariableDescription[] | null;
+    onRequestEditVariable?: (columnName: string) => void;
 }
 
-function VariableTooltip({ variable, onClose }: { variable: VariableDescription; onClose: () => void }) {
+function VariableTooltip({
+    variable,
+    onClose,
+    onEnter,
+    onEdit,
+}: {
+    variable: VariableDescription;
+    onClose: () => void;
+    onEnter?: () => void;
+    onEdit?: (columnName: string) => void;
+}) {
     return (
         <div
             className="absolute left-0 top-full z-20 mt-1 w-[320px] max-w-[90vw] rounded-lg border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-700 dark:bg-slate-800"
+            onMouseEnter={onEnter}
             onMouseLeave={onClose}
         >
             <div className="space-y-3 text-sm min-w-0 overflow-hidden">
@@ -78,14 +92,58 @@ function VariableTooltip({ variable, onClose }: { variable: VariableDescription;
                         </div>
                     </div>
                 )}
+
+                {onEdit && (
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+                        <button
+                            type="button"
+                            onClick={() => onEdit(variable.columnName)}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+                            data-1p-ignore
+                        >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit variable
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
 }
 
-export function DataPreview({ headers, data, fileName, variableDescriptions }: DataPreviewProps) {
+export function DataPreview({ headers, data, fileName, variableDescriptions, onRequestEditVariable }: DataPreviewProps) {
     const [hoveredColumnIndex, setHoveredColumnIndex] = useState<number | null>(null);
+    const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const previewRows = data.slice(0, 10);
+
+    const clearCloseTimeout = () => {
+        if (closeTimeoutRef.current) {
+            clearTimeout(closeTimeoutRef.current);
+            closeTimeoutRef.current = null;
+        }
+    };
+
+    const scheduleClose = () => {
+        clearCloseTimeout();
+        closeTimeoutRef.current = setTimeout(() => {
+            setHoveredColumnIndex(null);
+            closeTimeoutRef.current = null;
+        }, TOOLTIP_LEAVE_DELAY_MS);
+    };
+
+    const handleTooltipClose = () => {
+        clearCloseTimeout();
+        setHoveredColumnIndex(null);
+    };
+
+    const handleTooltipEnter = () => {
+        clearCloseTimeout();
+    };
+
+    const handleEditFromTooltip = (columnName: string) => {
+        onRequestEditVariable?.(columnName);
+        setHoveredColumnIndex(null);
+    };
 
     const getDescriptionForHeader = (header: string): VariableDescription | undefined =>
         variableDescriptions?.find(
@@ -114,8 +172,11 @@ export function DataPreview({ headers, data, fileName, variableDescriptions }: D
                                     <th
                                         key={i}
                                         className="relative px-6 py-3 font-medium whitespace-nowrap"
-                                        onMouseEnter={() => hasDescription && setHoveredColumnIndex(i)}
-                                        onMouseLeave={() => setHoveredColumnIndex(null)}
+                                        onMouseEnter={() => {
+                                            clearCloseTimeout();
+                                            hasDescription && setHoveredColumnIndex(i);
+                                        }}
+                                        onMouseLeave={scheduleClose}
                                     >
                                         <span className={hasDescription ? 'cursor-help' : ''}>
                                             {header}
@@ -124,7 +185,12 @@ export function DataPreview({ headers, data, fileName, variableDescriptions }: D
                                             )}
                                         </span>
                                         {hasDescription && isHovered && description && (
-                                            <VariableTooltip variable={description} onClose={() => setHoveredColumnIndex(null)} />
+                                            <VariableTooltip
+                                                variable={description}
+                                                onClose={handleTooltipClose}
+                                                onEnter={handleTooltipEnter}
+                                                onEdit={onRequestEditVariable ? handleEditFromTooltip : undefined}
+                                            />
                                         )}
                                     </th>
                                 );

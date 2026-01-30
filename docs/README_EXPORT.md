@@ -36,15 +36,15 @@ Given a dataset with columns like `year`, `date`, `temperature`, the exported di
 
 ```
 Variable name | Description           | Variable type | Variable range or levels | Units      | How measured
-year          | Year of sampling      | numeric       | 2015 – 2021              | yyyy       | defined
-date          | Date of sampling      | date          | 2015-07-22 – 2021-07-30  | yyyy-mm-dd | defined
-temperature   | Temperature recorded  | numeric       | -5.2 – 28.3              | °C         | measured
+year          | Year of sampling      | numeric       | 2015 – 2021               | yyyy       | defined
+date          | Date of sampling      | date          | 2015-07-22 – 2021-07-30   | yyyy-mm-dd | defined
+temperature   | Temperature recorded  | numeric       | -5.2 – 28.3               | °C         | measured
 ```
 
 ## Technical Details
 
 ### AI Prompt Enhancement
-The AI prompt has been enhanced to generate all required fields for the standardized data dictionary format. The AI analyzes sample data to:
+The AI prompt has been enhanced to generate all required fields for the standardized data dictionary format. The AI analyzes sample data and summary statistics to:
 - Infer data types
 - Extract actual value ranges from the data
 - Determine appropriate units
@@ -57,7 +57,7 @@ The export functionality is implemented in `src/services/exportService.ts` and p
 - Automatic filename generation with timestamps
 
 ### Dependencies
-The export feature uses the `xlsx` library (already included in the project) for Excel file generation.
+The export feature uses the `xlsx` library (included in the project) for Excel file generation.
 
 ## File Locations
 
