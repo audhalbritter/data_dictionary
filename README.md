@@ -4,6 +4,13 @@ A web app that uses **Claude AI** (Anthropic) to generate standardized, machine-
 
 ---
 
+## Where to use the tool
+
+- **Online (no install)**: Use the app directly at **[https://audhalbritter.github.io/data_dictionary/](https://audhalbritter.github.io/data_dictionary/)**. You only need an Anthropic API key (see [How to get a Claude API key](#how-to-get-a-claude-api-key)).
+- **Local development**: Run `npm run dev` and open **http://localhost:5173/** in your browser if you want to develop or run the app locally.
+
+---
+
 ## What it does
 
 1. **Upload a dataset** (CSV or Excel) and optionally a **context document** (methods, experiment description, etc.).
@@ -62,9 +69,20 @@ A web app that uses **Claude AI** (Anthropic) to generate standardized, machine-
 
 ## Options and requirements
 
-- **API key**: You need an [Anthropic](https://www.anthropic.com/) API key. Set it in the app via **Settings** (or “Set API Key” when prompted).
+- **API key**: You need an [Anthropic](https://www.anthropic.com/) API key. Set it in the app via **Settings** (or “Set API Key” when prompted). See [How to get a Claude API key](#how-to-get-a-claude-api-key) below.
 - **Browser**: Modern browser with JavaScript enabled. The app runs in the browser; data and API calls are not sent to any server except Anthropic’s API when you run “Generate Dictionary”.
 - **Context and data size**: Very large context documents or datasets may hit model context limits; the app sends summary statistics and a sample of rows to keep usage reasonable.
+
+### How to get a Claude API key
+
+1. Go to **[Anthropic](https://www.anthropic.com/)** and sign up or log in.
+2. Open the **[Anthropic Console](https://console.anthropic.com/)** (or go to [https://console.anthropic.com/](https://console.anthropic.com/)).
+3. In the console, go to **API Keys** (or **Settings → API Keys**).
+4. Click **Create Key**, give it a name (e.g. “Data Dictionary”), and create it.
+5. Copy the key (it starts with `sk-ant-`). You will not be able to see the full key again after leaving the page.
+6. In the Data Dictionary AI app, open **Settings** (or click “Set API Key” when prompted) and paste the key. It is stored only in your browser (localStorage) and is never sent to any server other than Anthropic’s API.
+
+For more details and pricing, see [Anthropic’s documentation](https://docs.anthropic.com/).
 
 ---
 
