@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Info, Pencil } from 'lucide-react';
+
+const TOOLTIP_LEAVE_DELAY_MS = 200;
 
 export interface VariableDescription {
     columnName: string;
@@ -24,15 +26,18 @@ interface DataPreviewProps {
 function VariableTooltip({
     variable,
     onClose,
+    onEnter,
     onEdit,
 }: {
     variable: VariableDescription;
     onClose: () => void;
+    onEnter?: () => void;
     onEdit?: (columnName: string) => void;
 }) {
     return (
         <div
             className="absolute left-0 top-full z-20 mt-1 w-[320px] max-w-[90vw] rounded-lg border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-700 dark:bg-slate-800"
+            onMouseEnter={onEnter}
             onMouseLeave={onClose}
         >
             <div className="space-y-3 text-sm min-w-0 overflow-hidden">
@@ -108,7 +113,32 @@ function VariableTooltip({
 
 export function DataPreview({ headers, data, fileName, variableDescriptions, onRequestEditVariable }: DataPreviewProps) {
     const [hoveredColumnIndex, setHoveredColumnIndex] = useState<number | null>(null);
+    const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const previewRows = data.slice(0, 10);
+
+    const clearCloseTimeout = () => {
+        if (closeTimeoutRef.current) {
+            clearTimeout(closeTimeoutRef.current);
+            closeTimeoutRef.current = null;
+        }
+    };
+
+    const scheduleClose = () => {
+        clearCloseTimeout();
+        closeTimeoutRef.current = setTimeout(() => {
+            setHoveredColumnIndex(null);
+            closeTimeoutRef.current = null;
+        }, TOOLTIP_LEAVE_DELAY_MS);
+    };
+
+    const handleTooltipClose = () => {
+        clearCloseTimeout();
+        setHoveredColumnIndex(null);
+    };
+
+    const handleTooltipEnter = () => {
+        clearCloseTimeout();
+    };
 
     const handleEditFromTooltip = (columnName: string) => {
         onRequestEditVariable?.(columnName);
@@ -142,8 +172,11 @@ export function DataPreview({ headers, data, fileName, variableDescriptions, onR
                                     <th
                                         key={i}
                                         className="relative px-6 py-3 font-medium whitespace-nowrap"
-                                        onMouseEnter={() => hasDescription && setHoveredColumnIndex(i)}
-                                        onMouseLeave={() => setHoveredColumnIndex(null)}
+                                        onMouseEnter={() => {
+                                            clearCloseTimeout();
+                                            hasDescription && setHoveredColumnIndex(i);
+                                        }}
+                                        onMouseLeave={scheduleClose}
                                     >
                                         <span className={hasDescription ? 'cursor-help' : ''}>
                                             {header}
@@ -154,7 +187,8 @@ export function DataPreview({ headers, data, fileName, variableDescriptions, onR
                                         {hasDescription && isHovered && description && (
                                             <VariableTooltip
                                                 variable={description}
-                                                onClose={() => setHoveredColumnIndex(null)}
+                                                onClose={handleTooltipClose}
+                                                onEnter={handleTooltipEnter}
                                                 onEdit={onRequestEditVariable ? handleEditFromTooltip : undefined}
                                             />
                                         )}
