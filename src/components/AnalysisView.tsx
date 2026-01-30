@@ -1,7 +1,10 @@
 import { Card, CardContent } from './ui/Card';
-import { Loader2, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Download, Pencil } from 'lucide-react';
 import { Button } from './ui/Button';
+import { VariableEditModal, type VariableEntry } from './VariableEditModal';
 import { exportToCSV, exportToXLSX } from '../services/exportService';
+import { AnthropicService } from '../services/anthropic';
+import { generateVariableRevisionPrompt } from '../services/prompts/columnAnalysis';
 import { useState, useEffect, useRef } from 'react';
 
 interface ColumnDescription {
@@ -18,12 +21,58 @@ interface ColumnDescription {
 interface AnalysisViewProps {
     isLoading: boolean;
     analysisResult: ColumnDescription[] | null;
+    setAnalysisResult: (result: ColumnDescription[] | null) => void;
     error?: string | null;
+    editingVariableName: string | null;
+    setEditingVariableName: (name: string | null) => void;
+    apiKey: string;
+    model: string;
+    contextText?: string;
 }
 
-export function AnalysisView({ isLoading, analysisResult, error }: AnalysisViewProps) {
+export function AnalysisView({
+    isLoading,
+    analysisResult,
+    setAnalysisResult,
+    error,
+    editingVariableName,
+    setEditingVariableName,
+    apiKey,
+    model,
+    contextText,
+}: AnalysisViewProps) {
     const [showExportMenu, setShowExportMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
+
+    const editingVariable = analysisResult?.find(
+        (col) => col.columnName === editingVariableName
+    ) ?? null;
+
+    const handleSaveVariable = (updated: VariableEntry) => {
+        if (!analysisResult) return;
+        setAnalysisResult(
+            analysisResult.map((col) =>
+                col.columnName === updated.columnName ? { ...col, ...updated } : col
+            )
+        );
+        setEditingVariableName(null);
+    };
+
+    const handleReviseWithAI = async (feedback: string) => {
+        if (!editingVariable || !apiKey) return;
+        const client = new AnthropicService(apiKey);
+        const { system, user } = generateVariableRevisionPrompt(
+            editingVariable,
+            feedback,
+            contextText
+        );
+        const responseText = await client.generateMessage(system, user, model);
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        const jsonString = jsonMatch ? jsonMatch[0] : responseText;
+        const revised = JSON.parse(jsonString) as VariableEntry;
+        if (revised.columnName !== editingVariable.columnName) revised.columnName = editingVariable.columnName;
+        handleSaveVariable(revised);
+    };
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -149,6 +198,7 @@ export function AnalysisView({ isLoading, analysisResult, error }: AnalysisViewP
                                     <th className="px-6 py-3 font-semibold whitespace-nowrap">Variable range or levels</th>
                                     <th className="px-6 py-3 font-semibold whitespace-nowrap">Units</th>
                                     <th className="px-6 py-3 font-semibold whitespace-nowrap">How measured</th>
+                                    <th className="px-6 py-3 font-semibold whitespace-nowrap w-[80px]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -172,6 +222,18 @@ export function AnalysisView({ isLoading, analysisResult, error }: AnalysisViewP
                                         <td className="px-6 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
                                             {col.howMeasured || '—'}
                                         </td>
+                                        <td className="px-6 py-3 whitespace-nowrap">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setEditingVariableName(col.columnName)}
+                                                className="text-slate-500 hover:text-indigo-600"
+                                                title="Edit variable"
+                                                data-1p-ignore
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -179,6 +241,14 @@ export function AnalysisView({ isLoading, analysisResult, error }: AnalysisViewP
                     </div>
                 </CardContent>
             </Card>
+
+            <VariableEditModal
+                isOpen={!!editingVariableName}
+                variable={editingVariable}
+                onClose={() => setEditingVariableName(null)}
+                onSave={handleSaveVariable}
+                onReviseWithAI={apiKey ? handleReviseWithAI : undefined}
+            />
         </div>
     );
 }

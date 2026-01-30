@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
-import { Info } from 'lucide-react';
+import { Info, Pencil } from 'lucide-react';
 
 export interface VariableDescription {
     columnName: string;
@@ -18,9 +18,18 @@ interface DataPreviewProps {
     data: any[][];
     fileName?: string;
     variableDescriptions?: VariableDescription[] | null;
+    onRequestEditVariable?: (columnName: string) => void;
 }
 
-function VariableTooltip({ variable, onClose }: { variable: VariableDescription; onClose: () => void }) {
+function VariableTooltip({
+    variable,
+    onClose,
+    onEdit,
+}: {
+    variable: VariableDescription;
+    onClose: () => void;
+    onEdit?: (columnName: string) => void;
+}) {
     return (
         <div
             className="absolute left-0 top-full z-20 mt-1 w-[320px] max-w-[90vw] rounded-lg border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-700 dark:bg-slate-800"
@@ -78,14 +87,33 @@ function VariableTooltip({ variable, onClose }: { variable: VariableDescription;
                         </div>
                     </div>
                 )}
+
+                {onEdit && (
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+                        <button
+                            type="button"
+                            onClick={() => onEdit(variable.columnName)}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+                            data-1p-ignore
+                        >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit variable
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
 }
 
-export function DataPreview({ headers, data, fileName, variableDescriptions }: DataPreviewProps) {
+export function DataPreview({ headers, data, fileName, variableDescriptions, onRequestEditVariable }: DataPreviewProps) {
     const [hoveredColumnIndex, setHoveredColumnIndex] = useState<number | null>(null);
     const previewRows = data.slice(0, 10);
+
+    const handleEditFromTooltip = (columnName: string) => {
+        onRequestEditVariable?.(columnName);
+        setHoveredColumnIndex(null);
+    };
 
     const getDescriptionForHeader = (header: string): VariableDescription | undefined =>
         variableDescriptions?.find(
@@ -124,7 +152,11 @@ export function DataPreview({ headers, data, fileName, variableDescriptions }: D
                                             )}
                                         </span>
                                         {hasDescription && isHovered && description && (
-                                            <VariableTooltip variable={description} onClose={() => setHoveredColumnIndex(null)} />
+                                            <VariableTooltip
+                                                variable={description}
+                                                onClose={() => setHoveredColumnIndex(null)}
+                                                onEdit={onRequestEditVariable ? handleEditFromTooltip : undefined}
+                                            />
                                         )}
                                     </th>
                                 );

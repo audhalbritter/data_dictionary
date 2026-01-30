@@ -58,3 +58,48 @@ export const generateRepairPrompt = (missingColumns: string[]): string => {
 Please provide the JSON objects for ONLY these missing columns. Do not repeat the columns you already analyzed.
 Ensure the format is the same JSON array of objects as requested before.`;
 };
+
+export interface VariableForRevision {
+    columnName: string;
+    type: string;
+    description: string;
+    variableRangeOrLevels?: string;
+    units?: string;
+    howMeasured?: string;
+    semanticType?: string;
+    exampleValues?: any[];
+}
+
+/**
+ * Prompt for revising a single variable based on user feedback.
+ * Returns a single JSON object (not an array) with the same keys as the variable.
+ */
+export const generateVariableRevisionPrompt = (
+    variable: VariableForRevision,
+    userFeedback: string,
+    contextText?: string
+): { system: string; user: string } => {
+    const systemPrompt = `You are an expert Data Steward. The user is correcting or refining one variable in a data dictionary.
+You will receive the current variable entry and the user's feedback. Your task is to output a revised variable as a single JSON object.
+Output MUST be strict JSON only, with exactly these keys (use empty string "" where not applicable):
+- "columnName": same as the variable name (do not change)
+- "description": clear description of what the column represents
+- "type": e.g. numeric, character, date, logical, categorical
+- "variableRangeOrLevels": range (e.g. "2015 - 2021") or levels for categorical
+- "units": unit of measurement or ""
+- "howMeasured": e.g. measured, defined, calculated, observed, or ""
+- "exampleValues": array of a few example values, or []
+- "semanticType": optional semantic type or ""
+
+Apply the user's feedback precisely. If they give a replacement description, use it. If they correct units or range, update those fields.
+Do not include any text before or after the JSON object.`;
+
+    let userMessage = `=== CURRENT VARIABLE ===\n${JSON.stringify(variable, null, 2)}\n\n`;
+    if (contextText?.trim()) {
+        userMessage += `=== STUDY CONTEXT (optional reference) ===\n${contextText.trim()}\n\n`;
+    }
+    userMessage += `=== USER FEEDBACK ===\n${userFeedback.trim()}\n\n`;
+    userMessage += `Return only the revised JSON object for this variable.`;
+
+    return { system: systemPrompt, user: userMessage };
+};

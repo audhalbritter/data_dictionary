@@ -34,6 +34,7 @@ function App() {
 
   // View State
   const [isWorkspaceActive, setIsWorkspaceActive] = useState(false);
+  const [editingVariableName, setEditingVariableName] = useState<string | null>(null);
 
   // Load key and model from storage
   useEffect(() => {
@@ -418,13 +419,20 @@ function App() {
                 data={rows}
                 fileName={fileName}
                 variableDescriptions={analysisResult}
+                onRequestEditVariable={setEditingVariableName}
               />
 
               <div id="analysis-section">
                 <AnalysisView
                   isLoading={isAnalyzing}
                   analysisResult={analysisResult}
+                  setAnalysisResult={setAnalysisResult}
                   error={analysisError}
+                  editingVariableName={editingVariableName}
+                  setEditingVariableName={setEditingVariableName}
+                  apiKey={apiKey}
+                  model={model}
+                  contextText={contextDoc?.text}
                 />
               </div>
             </div>
