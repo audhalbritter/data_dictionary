@@ -452,7 +452,7 @@ function App() {
       </main>
 
       <footer className="border-t border-slate-200 dark:border-slate-800 py-4 mt-auto">
-        <div className="container mx-auto px-4 max-w-6xl text-center">
+        <div className="container mx-auto px-4 max-w-6xl text-center flex items-center justify-center gap-4">
           <a
             href="https://github.com/audhalbritter/data_dictionary#readme"
             target="_blank"
@@ -460,6 +460,14 @@ function App() {
             className="text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
           >
             Documentation
+          </a>
+          <a
+            href="https://github.com/audhalbritter/data_dictionary/issues/new"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+          >
+            Give feedback
           </a>
         </div>
       </footer>
