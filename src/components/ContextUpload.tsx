@@ -72,13 +72,17 @@ export function ContextUpload({ onContextLoaded, existingContext }: ContextUploa
                         }}
                         onDragLeave={() => setIsDragging(false)}
                         onDrop={handleDrop}
+                        onClick={() => fileInputRef.current?.click()}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
                         className={`
-                            relative border-2 border-dashed rounded-lg p-8 text-center transition-colors
+                            relative flex flex-col items-center justify-center w-full min-h-[240px] border-2 border-dashed rounded-lg text-center transition-colors cursor-pointer
                             ${isDragging 
                                 ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/20' 
                                 : 'border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600'
                             }
-                            ${isProcessing ? 'opacity-50 pointer-events-none' : ''}
+                            ${isProcessing ? 'opacity-50 pointer-events-none cursor-wait' : ''}
                         `}
                     >
                         <input
@@ -91,34 +95,29 @@ export function ContextUpload({ onContextLoaded, existingContext }: ContextUploa
                         />
 
                         {isProcessing ? (
-                            <div className="space-y-3">
-                                <Loader2 className="h-12 w-12 mx-auto text-indigo-500 animate-spin" />
+                            <div className="flex flex-col items-center justify-center p-6 space-y-3">
+                                <Loader2 className="h-12 w-12 text-indigo-500 animate-spin" />
                                 <p className="text-sm text-slate-600 dark:text-slate-400">
                                     Parsing document...
                                 </p>
                             </div>
                         ) : (
-                            <>
-                                <Upload className="h-12 w-12 mx-auto text-slate-400 mb-4" />
-                                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                                    Add Context (Optional)
-                                </h3>
-                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                                    Upload a document with study methods, experiment details, or data collection information
-                                    to help generate more accurate variable descriptions.
-                                </p>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    type="button"
-                                >
-                                    Choose File
-                                </Button>
-                                <p className="text-xs text-slate-500 mt-3">
-                                    Supports: .txt, .md, .docx, .pdf
-                                </p>
-                            </>
+                            <div className="flex flex-col items-center justify-center p-6 space-y-4">
+                                <div className="p-4 rounded-full bg-slate-100 dark:bg-slate-800">
+                                    <Upload className="w-8 h-8 text-indigo-500" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                                        Update context
+                                    </h3>
+                                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                        Drag & drop or click to select
+                                    </p>
+                                </div>
+                                <div className="text-xs text-slate-400">
+                                    Supports .txt, .md, .docx, .pdf
+                                </div>
+                            </div>
                         )}
                     </div>
                 ) : (
