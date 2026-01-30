@@ -35,20 +35,48 @@ function App() {
   const [isWorkspaceActive, setIsWorkspaceActive] = useState(false);
   const [editingVariableName, setEditingVariableName] = useState<string | null>(null);
 
-  // Load key and model from storage
+  // Load key and model from storage (local or session)
   useEffect(() => {
-    const storedKey = localStorage.getItem('anthropic_api_key');
-    if (storedKey) setApiKey(storedKey);
+    // Check local storage first
+    let storedKey = localStorage.getItem('anthropic_api_key');
+    let storedModel = localStorage.getItem('anthropic_model');
 
-    const storedModel = localStorage.getItem('anthropic_model');
+    // Fallback to session storage if not in local
+    if (!storedKey) {
+      storedKey = sessionStorage.getItem('anthropic_api_key');
+      storedModel = sessionStorage.getItem('anthropic_model');
+    }
+
+    if (storedKey) setApiKey(storedKey);
     if (storedModel) setModel(storedModel);
   }, []);
 
-  const handleSaveKey = (key: string, selectedModel: string) => {
+  const handleSaveKey = (key: string, selectedModel: string, storageType: 'local' | 'session') => {
     setApiKey(key);
     setModel(selectedModel);
-    localStorage.setItem('anthropic_api_key', key);
-    localStorage.setItem('anthropic_model', selectedModel);
+
+    if (storageType === 'local') {
+      localStorage.setItem('anthropic_api_key', key);
+      localStorage.setItem('anthropic_model', selectedModel);
+      // Clear session to avoid confusion
+      sessionStorage.removeItem('anthropic_api_key');
+      sessionStorage.removeItem('anthropic_model');
+    } else {
+      sessionStorage.setItem('anthropic_api_key', key);
+      sessionStorage.setItem('anthropic_model', selectedModel);
+      // Clear local
+      localStorage.removeItem('anthropic_api_key');
+      localStorage.removeItem('anthropic_model');
+    }
+  };
+
+  const handleResetKey = () => {
+    setApiKey('');
+    // Clear both
+    localStorage.removeItem('anthropic_api_key');
+    localStorage.removeItem('anthropic_model');
+    sessionStorage.removeItem('anthropic_api_key');
+    sessionStorage.removeItem('anthropic_model');
   };
 
   const historyEntries = loadHistory();
@@ -476,6 +504,7 @@ function App() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onSaveKey={handleSaveKey}
+        onResetKey={handleResetKey}
         existingKey={apiKey}
         existingModel={model}
       />
