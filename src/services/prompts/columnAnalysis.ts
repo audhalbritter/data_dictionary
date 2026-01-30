@@ -9,7 +9,7 @@ export const generateColumnAnalysisPrompt = (
 Your goal is to analyze the provided dataset preview and summary statistics to generate a comprehensive description for each column.
 Output MUST be in strict JSON format as a list of objects, where each object has:
 - "columnName": The name of the column (Variable name).
-- "description": A clear, concise description of what this column represents.
+- "description": A clear, concise description of what this column represents. If the variable name or its values contain abbreviations or codes, define all of them in the description (e.g. "F = forbs, G = graminoids, ...").
 - "type": inferred data type (e.g., numeric, character, date, logical, categorical). Use "date" for date columns.
 - "variableRangeOrLevels": The range of values (e.g., "2015 - 2021", "2015-07-22 - 2021-07-30") for numeric or date data, or levels/categories for categorical data. Use the SUMMARY STATISTICS below for min/max ranges—they are computed over the full dataset (omitting NAs), so they are reliable even when the first rows are NA.
 - "units": The unit of measurement if applicable (e.g., "mm", "kg", "°C", "yyyy-mm-dd" for dates). Leave empty string if not applicable.
@@ -24,6 +24,15 @@ Important guidelines:
 - For "howMeasured": Use terms like "measured" for sensor/instrument data, "defined" for identifiers or predefined values, "calculated" for derived values, "observed" for observational data.
 - Be specific and accurate. When summary statistics are provided, rely on them for ranges and types.
 - If additional context about the study or data collection is provided, use it to inform your descriptions.
+
+Abbreviations:
+- If a variable name or its values contain abbreviations, acronyms, or codes, define every one in the description (e.g. "Cover of plant functional types: F = forbs, G = graminoids, M = mosses").
+
+Experimental design – hierarchical structure:
+- If the data appear to be from an experimental or observational design, look for hierarchical structure in the identifiers (e.g. site > block > plot, or region > site > subplot). Infer from column names and values (e.g. siteID, blockID, plotID) and from repeated patterns. In the description of the relevant columns, state the hierarchy and cardinality where possible (e.g. "Site identifier; hierarchy: site (e.g. Alrust) contains blocks, 4 blocks per site; each block contains 8 plots").
+
+Experimental design – redundancy in naming:
+- If the design uses composite or encoded IDs, look for redundancy: some variables may repeat or encode information from others. For example, blockID might be site code + block number (e.g. Alr1 from site Alrust), and plotID might be blockID + treatment code (e.g. Alr1GB from block Alr1 and treatment GB). When you detect such patterns, describe them in the description (e.g. "Plot identifier; encodes blockID + treatment code (e.g. Alr1GB = block Alr1, treatment GB). Redundant with blockID and treatment when combined.") so users understand the naming system and avoid double-counting.
 
 Do not include any conversational text, just the JSON array.`;
 
