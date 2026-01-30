@@ -189,16 +189,25 @@ export function AnalysisView({
             <Card className="w-full overflow-hidden">
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
+                        <table className="w-full text-sm text-left table-fixed">
+                            <colgroup>
+                                <col style={{ width: '12%' }} />
+                                <col style={{ width: '38%' }} />
+                                <col style={{ width: '10%' }} />
+                                <col style={{ width: '15%' }} />
+                                <col style={{ width: '8%' }} />
+                                <col style={{ width: '10%' }} />
+                                <col style={{ width: '7%' }} />
+                            </colgroup>
                             <thead className="text-xs text-slate-700 uppercase bg-slate-100 dark:bg-slate-800 dark:text-slate-300">
                                 <tr>
                                     <th className="px-6 py-3 font-semibold whitespace-nowrap">Variable name</th>
                                     <th className="px-6 py-3 font-semibold">Description</th>
                                     <th className="px-6 py-3 font-semibold whitespace-nowrap">Variable type</th>
-                                    <th className="px-6 py-3 font-semibold whitespace-nowrap">Variable range or levels</th>
-                                    <th className="px-6 py-3 font-semibold whitespace-nowrap">Units</th>
-                                    <th className="px-6 py-3 font-semibold whitespace-nowrap">How measured</th>
-                                    <th className="px-6 py-3 font-semibold whitespace-nowrap w-[80px]">Actions</th>
+                                    <th className="px-6 py-3 font-semibold break-words">Variable range or levels</th>
+                                    <th className="px-6 py-3 font-semibold break-words">Units</th>
+                                    <th className="px-6 py-3 font-semibold break-words">How measured</th>
+                                    <th className="px-6 py-3 font-semibold whitespace-nowrap">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -207,19 +216,19 @@ export function AnalysisView({
                                         <td className="px-6 py-3 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
                                             {col.columnName}
                                         </td>
-                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 max-w-md">
+                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 align-top break-words">
                                             {col.description}
                                         </td>
                                         <td className="px-6 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
                                             {col.type}
                                         </td>
-                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 max-w-[200px]">
+                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 align-top break-words">
                                             {col.variableRangeOrLevels || '—'}
                                         </td>
-                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 align-top break-words">
                                             {col.units || '—'}
                                         </td>
-                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                        <td className="px-6 py-3 text-slate-600 dark:text-slate-300 align-top break-words">
                                             {col.howMeasured || '—'}
                                         </td>
                                         <td className="px-6 py-3 whitespace-nowrap">
