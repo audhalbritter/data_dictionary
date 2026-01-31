@@ -325,7 +325,7 @@ function App() {
                             {entry.fileName}
                           </p>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            {entry.rows.length} rows · {new Date(entry.createdAt).toLocaleDateString()}
+                            {entry.rows.length} rows · {new Date(entry.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
                           </p>
                         </button>
                       ))
