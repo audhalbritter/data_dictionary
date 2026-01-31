@@ -354,7 +354,7 @@ function App() {
           <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="text-center space-y-4">
               <h2 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
-                Turn data into <span className="text-indigo-600 dark:text-indigo-400">clarity</span>
+                Turn data into <span className="text-indigo-600 dark:text-indigo-400">a data dictionary</span>
               </h2>
               <ol className="text-sm text-slate-600 dark:text-slate-400 list-decimal list-inside space-y-1 max-w-md mx-auto text-left">
                 <li>
